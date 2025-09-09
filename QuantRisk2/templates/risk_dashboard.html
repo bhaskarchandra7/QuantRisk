@@ -1,0 +1,457 @@
+{% extends 'base.html' %} {% block content %}
+<style>
+  /* Container */
+  .risk-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  /* Portfolio Controls */
+  .portfolio-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+  }
+  .portfolio-controls input {
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e0;
+    flex: 1;
+    min-width: 200px;
+  }
+  .portfolio-controls button {
+    background: #667eea;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  .portfolio-controls button:hover {
+    background: #5a67d8;
+  }
+
+  /* Portfolio List */
+  #portfolio-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 2rem;
+  }
+  #portfolio-list li {
+    background: #f8fafc;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .remove-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .remove-btn:hover {
+    background: #c53030;
+  }
+
+  /* Metric Cards */
+  .risk-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  .metric-card {
+    background: #f7fafc;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+  }
+  .metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  }
+  .metric-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #4a5568;
+  }
+  .metric-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #2d3748;
+  }
+  .metric-card p {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-top: 0.5rem;
+  }
+
+  /* Correlation Table */
+  .correlation-matrix {
+    margin: 3rem 0;
+    overflow-x: auto;
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  .correlation-matrix h3 {
+    margin-bottom: 1rem;
+    color: #667eea;
+  }
+  .correlation-matrix table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .correlation-matrix th,
+  .correlation-matrix td {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    text-align: center;
+  }
+  .correlation-matrix th {
+    background: #f7fafc;
+    color: #4a5568;
+    font-weight: 600;
+  }
+  .high-correlation {
+    background-color: rgba(0, 176, 155, 0.1);
+    color: #00b09b;
+    font-weight: 600;
+  }
+  .negative-correlation {
+    background-color: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    font-weight: 600;
+  }
+
+  /* Charts */
+  .chart-container {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+  }
+  .chart-container h3 {
+    margin-bottom: 1rem;
+    color: #667eea;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .portfolio-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .risk-container {
+      padding: 1.2rem;
+    }
+    .metric-card {
+      padding: 1.2rem;
+    }
+  }
+</style>
+
+<div class="risk-container">
+  <h2>Risk Analysis: {{ portfolio.name }}</h2>
+
+  <!-- Portfolio Management -->
+  <div class="portfolio-controls">
+    <label for="symbol-input">Add Asset (Ticker):</label>
+    <input type="text" id="symbol-input" placeholder="e.g. BTCUSDT" />
+    <button id="add-symbol-btn">Add</button>
+  </div>
+  <ul id="portfolio-list">
+    {% for sym in portfolio.symbols %}
+    <li>
+      {{ sym }}
+      <button class="remove-btn" data-symbol="{{ sym }}">Remove</button>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <!-- Risk Metrics Grid -->
+  <div class="risk-metrics-grid">
+    <div class="metric-card">
+      <h3>Value at Risk (VaR)</h3>
+      <div class="metric-value" id="var-value">--</div>
+      <p>95% confidence level</p>
+    </div>
+    <div class="metric-card">
+      <h3>Conditional VaR (CVaR)</h3>
+      <div class="metric-value" id="cvar-value">--</div>
+      <p>Expected shortfall at 95% confidence</p>
+    </div>
+    <div class="metric-card">
+      <h3>Portfolio Volatility</h3>
+      <div class="metric-value" id="volatility-value">--</div>
+      <p>Annualized standard deviation</p>
+    </div>
+    <div class="metric-card">
+      <h3>Maximum Drawdown</h3>
+      <div class="metric-value" id="mdd-value">--</div>
+      <p>Largest peak-to-trough decline</p>
+    </div>
+  </div>
+
+  <!-- Correlation Matrix Table -->
+  <div class="correlation-matrix">
+    <h3>Asset Correlations</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Asset</th>
+          {% for symbol in portfolio.symbols %}
+          <th>{{ symbol }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody id="corr-body">
+        {% for sym in portfolio.symbols %}
+        <tr>
+          <td><strong>{{ sym }}</strong></td>
+          {% for sym2 in portfolio.symbols %}
+          <td id="corr-{{ sym }}-{{ sym2 }}">--</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-container">
+    <h3>Portfolio Value vs VaR (Historical)</h3>
+    <canvas id="var-chart"></canvas>
+  </div>
+  <div class="chart-container">
+    <h3>Portfolio Price Over Time</h3>
+    <canvas id="price-chart"></canvas>
+  </div>
+</div>
+
+<!-- Include Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Utility to get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let c of cookies) {
+        const cookie = c.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie("csrftoken");
+
+  // Initialize empty charts
+  let varChart, priceChart, rsiChart, macdChart;
+  function initCharts() {
+    // Historical VaR Chart
+    const varCtx = document.getElementById("var-chart").getContext("2d");
+    varChart = new Chart(varCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Portfolio Value",
+            data: [],
+            borderColor: "#667eea",
+            tension: 0.1,
+          },
+          {
+            label: "VaR 95%",
+            data: [],
+            borderColor: "#ff4d4d",
+            borderDash: [5, 5],
+            tension: 0.1,
+          },
+        ],
+      },
+      options: { responsive: true },
+    });
+    // Portfolio Price Chart
+    const priceCtx = document.getElementById("price-chart").getContext("2d");
+    priceChart = new Chart(priceCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Portfolio Total Value",
+            data: [],
+            borderColor: "#00b09b",
+            fill: false,
+            tension: 0.1,
+          },
+        ],
+      },
+      options: { responsive: true },
+    });
+    // RSI Chart (for first asset in portfolio as example)
+    const rsiCtx = document.getElementById("rsi-chart").getContext("2d");
+    rsiChart = new Chart(rsiCtx, {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: { responsive: true },
+    });
+    // MACD Chart
+    const macdCtx = document.getElementById("macd-chart").getContext("2d");
+    macdChart = new Chart(macdCtx, {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: { responsive: true },
+    });
+  }
+
+  // Fetch and update data
+  function refreshData() {
+    fetch("{% url 'get_portfolio_data' %}")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status !== "success") {
+          alert("Error: " + data.error);
+          return;
+        }
+        // Update risk metrics in UI
+        document.getElementById("var-value").innerText =
+          data.risk_metrics.var_95.toFixed(4);
+        document.getElementById("cvar-value").innerText =
+          data.risk_metrics.cvar_95.toFixed(4);
+        document.getElementById("volatility-value").innerText =
+          data.risk_metrics.volatility.toFixed(4);
+        document.getElementById("mdd-value").innerText =
+          data.risk_metrics.max_drawdown.toFixed(4);
+
+        // Update correlation matrix
+        data.symbols.forEach((sym1) => {
+          data.symbols.forEach((sym2) => {
+            const cell = document.getElementById(`corr-${sym1}-${sym2}`);
+            if (cell) {
+              let corr = data.correlation_matrix[sym1][sym2];
+              cell.innerText = corr.toFixed(2);
+              // Color-coding
+              if (corr >= 0.7)
+                cell.style.backgroundColor = "rgba(0, 176, 155, 0.1)";
+              if (corr <= -0.7)
+                cell.style.backgroundColor = "rgba(255, 77, 77, 0.1)";
+            }
+          });
+        });
+
+        // Update charts with new data
+        // VaR Chart: portfolio value and VaR line
+        varChart.data.labels = data.dates;
+        varChart.data.datasets[0].data = data.portfolio_value;
+        // Create a constant VaR line across time (for simplicity)
+        varChart.data.datasets[1].data = Array(
+          data.portfolio_value.length
+        ).fill(data.risk_metrics.var_95);
+        varChart.update();
+
+        // Price chart: portfolio value
+        priceChart.data.labels = data.dates;
+        priceChart.data.datasets[0].data = data.portfolio_value;
+        priceChart.update();
+
+        // RSI and MACD: show for each asset (for demonstration, we overlay all assets)
+        rsiChart.data.labels = data.dates;
+        rsiChart.data.datasets = data.symbols.map((sym, idx) => ({
+          label: `${sym} RSI`,
+          data: Array(data.dates.length).fill(null), // placeholder
+          borderColor: ["#e8a317", "#3178e8", "#a832e8"][idx % 3],
+          tension: 0.1,
+        }));
+        macdChart.data.labels = data.dates;
+        macdChart.data.datasets = data.symbols.map((sym, idx) => ({
+          label: `${sym} MACD`,
+          data: Array(data.dates.length).fill(null), // placeholder
+          borderColor: ["#e80000", "#00a800", "#0000a8"][idx % 3],
+          tension: 0.1,
+        }));
+        // In a full implementation, you would fill RSI and MACD data arrays with actual time series values.
+        rsiChart.update();
+        macdChart.update();
+      });
+  }
+
+  // Add symbol via AJAX and refresh
+  document.getElementById("add-symbol-btn").addEventListener("click", () => {
+    const symInput = document.getElementById("symbol-input");
+    const symbol = symInput.value.trim().toUpperCase();
+    if (!symbol) return;
+    fetch("{% url 'add_symbol' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrftoken },
+      body: JSON.stringify({ symbol: symbol }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === "success") {
+          // Add to portfolio list in UI
+          const li = document.createElement("li");
+          li.innerHTML = `${symbol} <button class="remove-btn" data-symbol="${symbol}">Remove</button>`;
+          document.getElementById("portfolio-list").appendChild(li);
+          refreshData();
+        } else {
+          alert("Error: " + res.error);
+        }
+      });
+  });
+
+  // Remove symbol via AJAX
+  document
+    .getElementById("portfolio-list")
+    .addEventListener("click", (event) => {
+      if (event.target.classList.contains("remove-btn")) {
+        const symbol = event.target.dataset.symbol;
+        fetch("{% url 'remove_symbol' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken,
+          },
+          body: JSON.stringify({ symbol: symbol }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.status === "success") {
+              event.target.parentElement.remove();
+              refreshData();
+            } else {
+              alert("Error: " + res.error);
+            }
+          });
+      }
+    });
+
+  // Initialize everything
+  window.addEventListener("load", () => {
+    initCharts();
+    refreshData();
+  });
+</script>
+{% endblock %}

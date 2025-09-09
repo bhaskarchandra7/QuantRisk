@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Arial", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+        height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      }
+
+      .bg-circles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .circle {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.6;
+        background: linear-gradient(
+          135deg,
+          rgba(102, 126, 234, 0.7) 0%,
+          rgba(118, 75, 162, 0.7) 100%
+        );
+      }
+
+      .container {
+        position: relative;
+        z-index: 2;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .login-box {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        transform: translateY(0);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .login-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      }
+
+      h2 {
+        margin-bottom: 1.5rem;
+        color: #333;
+        font-size: 2rem;
+      }
+
+      #error-message {
+        color: #e74c3c;
+        margin-bottom: 1rem;
+        min-height: 1.5rem;
+        font-weight: 500;
+      }
+
+      #login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+      }
+
+      input {
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+      }
+
+      button {
+        padding: 1rem;
+        background: linear-gradient(to right, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 0.5rem;
+      }
+
+      button:hover {
+        background: linear-gradient(to right, #5a6fd1, #6a4299);
+        transform: translateY(-2px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .signup-link {
+        margin-top: 1.5rem;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .signup-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+
+      .signup-link a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-circles" id="bg-circles"></div>
+
+    <div class="container">
+      <div class="login-box">
+        <h2>Welcome Back</h2>
+        <div id="error-message" class="error"></div>
+        <form id="login-form">
+          <input type="text" id="username" placeholder="Username" required />
+          <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            required
+          />
+          <button type="submit">Sign In</button>
+          <div class="signup-link">
+            New user? <a href="/signup">Please sign up</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Create floating gradient circles with boundary detection
+      const bgCircles = document.getElementById("bg-circles");
+      const circles = [];
+
+      // Create circles
+      for (let i = 0; i < 8; i++) {
+        const circle = document.createElement("div");
+        circle.classList.add("circle");
+
+        const size = Math.random() * 200 + 100;
+        circle.style.width = `${size}px`;
+        circle.style.height = `${size}px`;
+
+        // Alternate gradient directions
+        if (i % 2 === 0) {
+          circle.style.background =
+            "linear-gradient(135deg, rgba(102,126,234,0.7) 0%, rgba(118,75,162,0.7) 100%)";
+        } else {
+          circle.style.background =
+            "linear-gradient(135deg, rgba(118,75,162,0.7) 0%, rgba(102,126,234,0.7) 100%)";
+        }
+
+        bgCircles.appendChild(circle);
+
+        // Store circle data
+        circles.push({
+          element: circle,
+          x: Math.random() * (window.innerWidth - size),
+          y: Math.random() * (window.innerHeight - size),
+          dx: (Math.random() - 0.5) * 2,
+          dy: (Math.random() - 0.5) * 2,
+          size: size,
+        });
+      }
+
+      // Animation loop with boundary checking
+      function animateCircles() {
+        for (const circle of circles) {
+          // Update position
+          circle.x += circle.dx;
+          circle.y += circle.dy;
+
+          // Boundary checking - bounce off edges
+          if (circle.x <= 0 || circle.x >= window.innerWidth - circle.size) {
+            circle.dx = -circle.dx;
+            circle.x = Math.max(
+              0,
+              Math.min(circle.x, window.innerWidth - circle.size)
+            );
+          }
+
+          if (circle.y <= 0 || circle.y >= window.innerHeight - circle.size) {
+            circle.dy = -circle.dy;
+            circle.y = Math.max(
+              0,
+              Math.min(circle.y, window.innerHeight - circle.size)
+            );
+          }
+
+          // Apply new position
+          circle.element.style.left = `${circle.x}px`;
+          circle.element.style.top = `${circle.y}px`;
+        }
+
+        requestAnimationFrame(animateCircles);
+      }
+
+      // Start animation
+      animateCircles();
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        for (const circle of circles) {
+          // Keep circles within bounds if window is resized
+          circle.x = Math.max(
+            0,
+            Math.min(circle.x, window.innerWidth - circle.size)
+          );
+          circle.y = Math.max(
+            0,
+            Math.min(circle.y, window.innerHeight - circle.size)
+          );
+        }
+      });
+
+      // Login form handling
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const errorMessage = document.getElementById("error-message");
+          const loginBox = document.querySelector(".login-box");
+
+          // Clear previous error
+          errorMessage.textContent = "";
+          loginBox.style.animation = "";
+
+          // Add loading state
+          const button = event.target.querySelector("button");
+          const originalButtonText = button.textContent;
+          button.textContent = "...";
+          button.style.background =
+            "linear-gradient(to right, #4a5568, #2d3748)";
+
+          // Simulate API call
+          setTimeout(() => {
+            fetch("/get-credentials/")
+              .then((response) => {
+                if (!response.ok) throw new Error("Network error");
+                return response.json();
+              })
+              .then((data) => {
+                if (username === data.userid && password === data.pass) {
+                  // Success animation
+                  loginBox.style.transform = "scale(0.95)";
+                  loginBox.style.opacity = "0.8";
+                  setTimeout(() => {
+                    window.location.href = "/dashboard/";
+                  }, 500);
+                } else {
+                  errorMessage.textContent = "Invalid credentials";
+                  loginBox.style.animation = "shake 0.5s";
+                  button.textContent = "Try Again";
+                  button.style.background =
+                    "linear-gradient(to right, #e53e3e, #c53030)";
+                  setTimeout(() => {
+                    button.style.background =
+                      "linear-gradient(to right, #667eea, #764ba2)";
+                    button.textContent = originalButtonText;
+                  }, 1500);
+                }
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                errorMessage.textContent = "Connection error";
+                button.textContent = "Retry";
+              });
+          }, 800);
+        });
+    </script>
+
+    <style>
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+          transform: translateX(-5px);
+        }
+        20%,
+        40%,
+        60%,
+        80% {
+          transform: translateX(5px);
+        }
+      }
+    </style>
+  </body>
+</html>

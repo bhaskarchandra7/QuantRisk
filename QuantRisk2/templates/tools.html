@@ -1,0 +1,327 @@
+{% extends "base.html" %} {% block content %}
+<style>
+  .tools-section {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  .tools-section h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    border-left: 4px solid #667eea;
+    padding-left: 0.75rem;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .input-grid input,
+  .input-grid select {
+    padding: 0.7rem 1rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: 0.3s ease;
+  }
+
+  .input-grid input:focus,
+  .input-grid select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    outline: none;
+  }
+
+  .tools-section button {
+    background-color: #667eea;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    transition: background 0.3s ease;
+  }
+
+  .tools-section button:hover {
+    background-color: #5a67d8;
+  }
+
+  .result-box {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #2d3748;
+    margin-top: 0.5rem;
+  }
+
+  #price_chart {
+    margin-top: 1.5rem;
+    border-radius: 8px;
+    background: #f7fafc;
+    padding: 1rem;
+  }
+
+  .pnl-positive {
+    color: green;
+  }
+  .pnl-negative {
+    color: red;
+  }
+
+  .chart-container {
+    margin: 2rem auto;
+    max-width: 960px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  #volHeatmap {
+    height: 250px;
+    max-height: 250px;
+    width: 100%;
+    display: block;
+  }
+  .tab-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .tab {
+    background: #edf2f7;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .tab.active {
+    background-color: #667eea;
+    color: white;
+  }
+</style>
+
+<div class="chart-container">
+  <h3>Volatility Heatmap</h3>
+  <div class="tab-buttons">
+    <button onclick="loadHeatmap('1h')" class="tab active" id="tab-1h">
+      1H
+    </button>
+    <button onclick="loadHeatmap('4h')" class="tab" id="tab-4h">4H</button>
+    <button onclick="loadHeatmap('1d')" class="tab" id="tab-1d">1D</button>
+  </div>
+  <canvas
+    id="volHeatmap"
+    width="600"
+    height="250"
+    style="display: block"
+  ></canvas>
+</div>
+
+<!--  PnL Simulator -->
+<div class="tools-section">
+  <h3>PnL Simulator</h3>
+  <div class="input-grid">
+    <input
+      id="entryPrice"
+      type="number"
+      step="any"
+      placeholder="Entry Price ($)"
+    />
+    <input
+      id="exitPrice"
+      type="number"
+      step="any"
+      placeholder="Exit Price ($)"
+    />
+    <input id="quantity" type="number" step="any" placeholder="Quantity" />
+    <input
+      id="fees"
+      type="number"
+      step="any"
+      placeholder="Fees ($)"
+      value="0"
+    />
+  </div>
+  <button id="calc_pnl">Calculate PnL</button>
+  <div class="result-box" id="pnlResult">
+    PnL: $<span id="pnlDollar">0.00</span> (<span id="pnlPercent">0.00%</span>)
+  </div>
+</div>
+
+<!--  5-Min Interval Chart -->
+<div class="tools-section">
+  <h3>Live Price and 5-Minute Chart</h3>
+  <div class="input-grid">
+    <select id="symbol_selector">
+      <option value="BTCUSDT">BTC/USDT</option>
+      <option value="ETHUSDT">ETH/USDT</option>
+      <option value="SOLUSDT">SOL/USDT</option>
+    </select>
+    <button id="load_price">Load Chart</button>
+  </div>
+  <p>Current Price: <span id="current_price">-</span></p>
+  <canvas id="price_chart" height="300"></canvas>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.1.0/dist/chartjs-chart-matrix.min.js"></script>
+<script>
+  let heatmapChart;
+
+  async function loadHeatmap(timeframe = "1h") {
+    // Update active tab
+    document
+      .querySelectorAll(".tab")
+      .forEach((btn) => btn.classList.remove("active"));
+    document.getElementById("tab-" + timeframe).classList.add("active");
+
+    const res = await fetch(
+      `/tools/volatility-heatmap/?timeframe=${timeframe}`
+    );
+    const json = await res.json();
+    const volData = json.data;
+
+    const ctx = document.getElementById("volHeatmap").getContext("2d");
+
+    if (heatmapChart) heatmapChart.destroy();
+
+    const minV = Math.min(...volData.map((d) => d.volatility));
+    const maxV = Math.max(...volData.map((d) => d.volatility));
+
+    function getColor(value) {
+      const scale = (value - minV) / (maxV - minV || 1);
+      if (scale > 0.66) return "rgba(255,77,77,0.8)";
+      if (scale > 0.33) return "rgba(255,193,7,0.8)";
+      return "rgba(0,176,155,0.8)";
+    }
+
+    const matrixData = volData.map((item) => ({
+      x: item.symbol,
+      y: 1,
+      v: item.volatility,
+      backgroundColor: getColor(item.volatility),
+    }));
+
+    heatmapChart = new Chart(ctx, {
+      type: "matrix",
+      data: {
+        datasets: [
+          {
+            label: "Volatility",
+            data: matrixData,
+            backgroundColor: (ctx) => ctx.raw.backgroundColor,
+            width: 60,
+            height: 40,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (ctx) => ctx[0].raw.x,
+              label: (ctx) => `Volatility: ${ctx.raw.v.toFixed(6)}`,
+            },
+          },
+          legend: { display: false },
+        },
+        scales: {
+          x: {
+            type: "category",
+            labels: volData.map((d) => d.symbol),
+            title: { display: true, text: "Symbol" },
+            grid: { display: false },
+          },
+          y: { display: false },
+        },
+      },
+    });
+  }
+
+  // Auto-load 1H on page load
+  document.addEventListener("DOMContentLoaded", () => loadHeatmap("1h"));
+
+  // 💰 PnL Calculator
+  document.getElementById("calc_pnl").onclick = () => {
+    const entry = parseFloat(document.getElementById("entryPrice").value) || 0;
+    const exit = parseFloat(document.getElementById("exitPrice").value) || 0;
+    const qty = parseFloat(document.getElementById("quantity").value) || 0;
+    const fees = parseFloat(document.getElementById("fees").value) || 0;
+
+    const profit = (exit - entry) * qty - fees;
+    const initial = entry * qty + fees;
+    const percent = initial !== 0 ? (profit / initial) * 100 : 0;
+
+    const pnlResult = document.getElementById("pnlResult");
+    document.getElementById("pnlDollar").innerText = profit.toFixed(2);
+    document.getElementById("pnlPercent").innerText = percent.toFixed(2) + "%";
+    pnlResult.className =
+      "result-box " +
+      (profit > 0 ? "pnl-positive" : profit < 0 ? "pnl-negative" : "");
+  };
+
+  // 📈 Load 5-Min Chart
+  let priceChart;
+  document.getElementById("load_price").onclick = async () => {
+    const symbol = document.getElementById("symbol_selector").value;
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=50`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const labels = data.map((k) => new Date(k[0]).toLocaleTimeString());
+    const prices = data.map((k) => parseFloat(k[4]));
+    const current = prices[prices.length - 1];
+    document.getElementById("current_price").innerText = current.toFixed(2);
+
+    const ctx = document.getElementById("price_chart").getContext("2d");
+    if (priceChart) priceChart.destroy();
+    priceChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: `${symbol} (5m Close)`,
+            data: prices,
+            borderColor: "#3182ce",
+            backgroundColor: "rgba(49,130,206,0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: { mode: "index", intersect: false },
+          title: {
+            display: true,
+            text: `${symbol} Price - 5m Interval`,
+            font: { size: 16 },
+          },
+        },
+        scales: {
+          x: { display: true, title: { display: true, text: "Time" } },
+          y: { display: true, title: { display: true, text: "Price (USD)" } },
+        },
+      },
+    });
+  };
+</script>
+{% endblock %}

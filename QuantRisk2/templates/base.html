@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Crypto Dashboard{% endblock %}</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Arial", sans-serif;
+      }
+
+      body {
+        background-color: #f5f7fa;
+        color: #333;
+        min-height: 100vh;
+      }
+
+      .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0.8rem 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .nav-container {
+        display: flex;
+        max-width: 1200px;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .navbar button {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+      }
+
+      .navbar button:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .navbar button.active {
+        background: rgba(255, 255, 255, 0.25);
+        font-weight: 600;
+      }
+
+      .logo {
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+      }
+
+      @media (max-width: 768px) {
+        .navbar {
+          padding: 0.8rem 1rem;
+        }
+        
+        .nav-container {
+          flex-direction: column;
+          gap: 0.8rem;
+        }
+        
+        .nav-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        
+        .navbar button {
+          padding: 0.5rem 0.8rem;
+          font-size: 0.85rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <div class="nav-container">
+        <div class="logo">QuantRisk</div>
+        <div class="nav-links">
+          <button onclick="location.href='/dashboard/'">Dashboard</button>
+          <button onclick="location.href='/portfolio/'">Portfolio</button>
+          <button onclick="location.href='/risk_dashboard/'">Risk Matrix</button>
+          <button onclick="location.href='/tools/'">Trading Tools</button>
+          <button onclick="location.href='/features/'">Features</button>
+          <button onclick="location.href='/alert/'">Alerts</button>
+          <button onclick="location.href='/reports/'">Reports</button>
+          <form method="POST" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">{% block content %} {% endblock %}</div>
+    
+    <script>
+      // Add active class to current page button
+      document.addEventListener('DOMContentLoaded', function() {
+        const path = window.location.pathname;
+        const buttons = document.querySelectorAll('.navbar button');
+        
+        buttons.forEach(button => {
+          if (button.getAttribute('onclick').includes(path)) {
+            button.classList.add('active');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

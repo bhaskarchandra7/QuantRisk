@@ -1,0 +1,503 @@
+{% extends "base.html" %} 
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+ <style>
+  /* Base Styles */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Dashboard Container */
+  .dashboard-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* Welcome Header */
+  .welcome-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .welcome-title {
+    font-size: 2.5rem;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .welcome-header p {
+    color: #64748b;
+    font-size: 1.1rem;
+  }
+
+  /* Search Container */
+  .search-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  #coin-search {
+    width: 100%;
+    padding: 0.8rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 25px;
+    font-size: 1rem;
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  #coin-search:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  /* Coins Grid */
+  .coins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    justify-items: center;
+    margin-bottom: 3rem;
+    width: 100%;
+  }
+
+  .coin-card {
+    background: white;
+    padding: 1.8rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 350px;
+  }
+
+  .coin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .coin-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .coin-icon {
+    width: 36px;
+    height: 36px;
+    margin-right: 1rem;
+  }
+
+  .coin-name {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #1e293b;
+  }
+
+  .coin-price {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0.8rem 0;
+    color: #1e293b;
+  }
+
+  .coin-change {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .coin-change.up {
+    color: #00b09b;
+  }
+
+  .coin-change.down {
+    color: #ff4d4d;
+  }
+
+  .coin-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .stat-item {
+    font-size: 0.95rem;
+  }
+
+  .stat-label {
+    color: #64748b;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  /* Market Data Section */
+  .market-data {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    border-left: 4px solid #667eea;
+  }
+
+  .data-title {
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+    color: #667eea;
+    font-weight: 600;
+  }
+
+  #data {
+    font-size: 1.1rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  /* Animations */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1200px) {
+    .dashboard-container {
+      padding: 2rem 1.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-container {
+      padding: 2rem 1rem;
+    }
+    
+    .welcome-title {
+      font-size: 2rem;
+    }
+    
+    .coin-card {
+      padding: 1.5rem;
+    }
+    
+    .market-data {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .coins-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .coin-card {
+      max-width: 100%;
+    }
+  }
+</style>
+
+<div class="dashboard-container">
+  <div class="welcome-header">
+    <h1 class="welcome-title">Welcome, {{ user }}!</h1>
+    <p>Live cryptocurrency market data</p>
+  </div>
+
+  <div class="coins-grid" id="coins-grid">
+    <!-- BTC Card -->
+    <div class="coin-card" data-coin="btcusdt" id="btc-card">
+      <div class="coin-header">
+        <img
+          src="https://assets.coincap.io/assets/icons/btc@2x.png"
+          alt="BTC"
+          class="coin-icon"
+        />
+        <div class="coin-name">BTC/USDT</div>
+      </div>
+      <div class="coin-price" id="btc-price">Loading...</div>
+      <div class="coin-change" id="btc-change"></div>
+      <div class="coin-stats">
+        <div class="stat-item">
+          <div class="stat-label">24h High</div>
+          <div id="btc-high">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Low</div>
+          <div id="btc-low">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Volume</div>
+          <div id="btc-volume">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Change (24h)</div>
+          <div id="btc-change-percent">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETH Card -->
+    <div class="coin-card" data-coin="ethusdt" id="eth-card">
+      <div class="coin-header">
+        <img
+          src="https://assets.coincap.io/assets/icons/eth@2x.png"
+          alt="ETH"
+          class="coin-icon"
+        />
+        <div class="coin-name">ETH/USDT</div>
+      </div>
+      <div class="coin-price" id="eth-price">Loading...</div>
+      <div class="coin-change" id="eth-change"></div>
+      <div class="coin-stats">
+        <div class="stat-item">
+          <div class="stat-label">24h High</div>
+          <div id="eth-high">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Low</div>
+          <div id="eth-low">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Volume</div>
+          <div id="eth-volume">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Change (24h)</div>
+          <div id="eth-change-percent">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOL Card -->
+    <div class="coin-card" data-coin="solusdt" id="sol-card">
+      <div class="coin-header">
+        <img
+          src="https://assets.coincap.io/assets/icons/sol@2x.png"
+          alt="SOL"
+          class="coin-icon"
+        />
+        <div class="coin-name">SOL/USDT</div>
+      </div>
+      <div class="coin-price" id="sol-price">Loading...</div>
+      <div class="coin-change" id="sol-change"></div>
+      <div class="coin-stats">
+        <div class="stat-item">
+          <div class="stat-label">24h High</div>
+          <div id="sol-high">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Low</div>
+          <div id="sol-low">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">24h Volume</div>
+          <div id="sol-volume">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Change (24h)</div>
+          <div id="sol-change-percent">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="market-data">
+    <h2 class="data-title">Live Market Data Stream</h2>
+    <pre id="data">Waiting for WebSocket connection...</pre>
+  </div>
+</div>
+<script>
+  // Initialize WebSocket connection
+  let socket;
+
+  // Coin configuration
+  const coins = {
+    btcusdt: { id: "btc", element: "btc-card", priceRange: [10000, 100000] },
+    ethusdt: { id: "eth", element: "eth-card", priceRange: [1000, 10000] },
+    solusdt: { id: "sol", element: "sol-card", priceRange: [10, 1000] },
+  };
+
+  // Cache for storing last known changePercent
+  const lastChangePercents = {
+    btc: 0,
+    eth: 0,
+    sol: 0,
+  };
+
+  function connectWebSocket() {
+    socket = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@ticker/ethusdt@ticker/solusdt@ticker");
+
+    socket.onopen = function () {
+      console.log("WebSocket connection established");
+      document.getElementById("data").textContent = "Connected to WebSocket...";
+    };
+    socket.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket data:", data);
+    
+        // Extract symbol and map to coinId
+        const symbol = data.s.toLowerCase();
+        const coinMap = {
+          'btcusdt': 'btc',
+          'ethusdt': 'eth',
+          'solusdt': 'sol'
+        };
+        
+        const coinId = coinMap[symbol];
+        if (!coinId) return;
+    
+        // Extract all relevant fields
+        const price = parseFloat(data.c);  // Last price
+        const high = parseFloat(data.h);   // 24h high
+        const low = parseFloat(data.l);    // 24h low
+        const volume = parseFloat(data.v); // 24h volume
+        const changePercent = parseFloat(data.P); // 24h change percent
+    
+        const coinData = {
+          price,
+          high,
+          low,
+          volume,
+          changePercent
+        };
+    
+        updateCoinCard(coinId, coinData);
+        updateDataDisplay(coinId, coinData);
+        
+      } catch (error) {
+        console.error("Error processing message:", error);
+      }
+    };
+
+        
+
+    socket.onerror = function (error) {
+      console.error("WebSocket error:", error);
+      document.getElementById("data").textContent =
+        "Connection error. Reconnecting...";
+      setTimeout(connectWebSocket, 3000);
+    };
+
+    socket.onclose = function () {
+      console.log("WebSocket connection closed");
+      document.getElementById("data").textContent =
+        "Connection closed. Reconnecting...";
+      setTimeout(connectWebSocket, 3000);
+    };
+  }
+  function updateCoinCard(coinId, data) {
+    const card = document.getElementById(`${coinId}-card`);
+    if (!card) return;
+  
+    // Helper function to update fields
+    const updateField = (id, value, isPrice = false) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = isPrice ? `${value.toFixed(2)} USDT` : value;
+      }
+    };
+  
+    // Update all fields
+    updateField(`${coinId}-price`, data.price, true);
+    updateField(`${coinId}-high`, data.high, true);
+    updateField(`${coinId}-low`, data.low, true);
+    updateField(`${coinId}-volume`, data.volume.toFixed(2));
+    updateField(`${coinId}-change-percent`, data.changePercent.toFixed(2) + '%');
+  
+    // Update change indicator
+    const changeElement = document.getElementById(`${coinId}-change`);
+    if (changeElement) {
+      const changeText = `${data.changePercent >= 0 ? "↑" : "↓"} ${Math.abs(data.changePercent).toFixed(2)}%`;
+      changeElement.textContent = changeText;
+      changeElement.className = `coin-change ${data.changePercent >= 0 ? "up" : "down"}`;
+    }
+  
+    // Visual feedback
+    card.style.animation = "pulse 0.5s";
+    setTimeout(() => (card.style.animation = ""), 500);
+  }
+
+  function updateDataDisplay(coinId, data) {
+    const dataDisplay = document.getElementById("data");
+    if (dataDisplay) {
+      dataDisplay.textContent = `Last update: ${new Date().toLocaleTimeString()}
+  Coin: ${coinId.toUpperCase()}
+  Price: ${data.price.toFixed(2)} USDT
+  24h High: ${data.high.toFixed(2)} USDT
+  24h Low: ${data.low.toFixed(2)} USDT
+  Volume: ${data.volume.toFixed(2)}
+  Change: ${data.changePercent.toFixed(2)}%`;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    connectWebSocket();
+
+    // Test data block
+    setTimeout(() => {
+      const testData = [
+        {
+          symbol: "btcusdt",
+          price: 50000 + Math.random() * 1000,
+          high: 51000,
+          low: 49500,
+          volume: 1234.56,
+          priceChangePercent: 1.23,
+        },
+        {
+          symbol: "ethusdt",
+          price: 3000 + Math.random() * 100,
+          high: 3100,
+          low: 2950,
+          volume: 5678.9,
+          priceChangePercent: 0.75, // This should retain previous value
+        },
+        {
+          symbol: "solusdt",
+          price: 100 + Math.random() * 10,
+          high: 110,
+          low: 95,
+          volume: 9876.54,
+          priceChangePercent: 2.5,
+        },
+      ];
+      testData.forEach((data) => {
+        const event = { data: JSON.stringify(data) };
+        socket.onmessage(event);
+      });
+    }, 2000);
+  });
+</script>
+
+{% endblock %}
